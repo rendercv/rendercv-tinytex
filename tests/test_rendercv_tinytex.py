@@ -1,4 +1,4 @@
-from rendercv_tinytex import run_pdftex
+from rendercv_tinytex import run_latex
 
 
 def test_run_pdftex(tmp_path):
@@ -14,6 +14,6 @@ def test_run_pdftex(tmp_path):
         "\\end{document}\n"
     )
 
-    pdf_file_path = run_pdftex(latex_file_path)
+    pdf_file_path = run_latex(latex_file_path)
 
     assert pdf_file_path.is_file()

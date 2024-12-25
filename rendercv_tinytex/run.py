@@ -1,13 +1,19 @@
 import pathlib
 import subprocess
 import sys
+from typing import Optional
 
 
-def run_pdftex(latex_file_path: pathlib.Path) -> pathlib.Path:
-    """Run TinyTeX with the given $\\LaTeX$ file to render the PDF.
+def run_latex(
+    latex_file_path: pathlib.Path, local_latex_command: Optional[str] = None
+) -> pathlib.Path:
+    """Run `pdftex` with the given $\\LaTeX$ file to render the PDF. If a local LaTeX
+    command is provided, it will be called instead of `pdftex` of TinyTeX.
 
     Args:
         latex_file_path: The path to the $\\LaTeX$ file.
+        local_latex_command: The local LaTeX command to use. If provided, it will be
+            called instead of `pdftex` of TinyTeX.
 
     Returns:
         The path to the rendered PDF file.
@@ -17,21 +23,49 @@ def run_pdftex(latex_file_path: pathlib.Path) -> pathlib.Path:
         message = f"The file {latex_file_path} doesn't exist!"
         raise FileNotFoundError(message)
 
-    tinytex_binaries_directory = (
-        pathlib.Path(__file__).parent / "tinytex-release" / "TinyTeX" / "bin"
-    )
+    if local_latex_command:
+        executable = local_latex_command
 
-    executables = {
-        "win32": tinytex_binaries_directory / "windows" / "pdflatex.exe",
-        "linux": tinytex_binaries_directory / "x86_64-linux" / "pdflatex",
-        "darwin": tinytex_binaries_directory / "universal-darwin" / "pdflatex",
-    }
+        # check if the command is working:
+        try:
+            subprocess.run(
+                [executable, "--version"],
+                stdout=subprocess.DEVNULL,  # don't capture the output
+                stderr=subprocess.DEVNULL,  # don't capture the error
+                check=True,
+            )
+        except FileNotFoundError as e:
+            message = (
+                f"{executable} isn't installed! Please install LaTeX and try again (or"
+                " don't use the [bright_black]--use-local-latex-command[/bright_black]"
+                " option)."
+            )
+            raise FileNotFoundError(message) from e
+    else:
+        tinytex_binaries_directory = (
+            pathlib.Path(__file__).parent / "tinytex-release" / "TinyTeX" / "bin"
+        )
 
-    if sys.platform not in executables:
-        message = f"TinyTeX doesn't support the platform {sys.platform}!"
-        raise OSError(message)
+        executables = {
+            "win32": tinytex_binaries_directory / "windows" / "pdflatex.exe",
+            "linux": tinytex_binaries_directory / "x86_64-linux" / "pdflatex",
+            "darwin": tinytex_binaries_directory / "universal-darwin" / "pdflatex",
+        }
 
-    executable = executables[sys.platform]
+        if sys.platform not in executables:
+            message = f"TinyTeX doesn't support the platform {sys.platform}!"
+            raise OSError(message)
+
+        executable = executables[sys.platform]
+
+        # check if the executable exists:
+        if not executable.is_file():
+            message = (
+                f"The TinyTeX executable ({executable}) doesn't exist! If you are"
+                " cloning the repository, make sure to clone it recursively to get the"
+                " TinyTeX binaries. See the developer guide for more information."
+            )
+            raise FileNotFoundError(message)
 
     # Before running LaTeX, make sure the PDF file is not open in another program,
     # that wouldn't allow LaTeX to write to it. Remove the PDF file if it exists,
@@ -62,6 +96,17 @@ def run_pdftex(latex_file_path: pathlib.Path) -> pathlib.Path:
         output = latex_process.communicate()  # wait for the process to finish
         if latex_process.returncode != 0:
             latex_file_path_log = latex_file_path.with_suffix(".log").read_text()
+
+            if local_latex_command:
+                message = (
+                    f"The local LaTeX command {local_latex_command} couldn't render"
+                    " this LaTeX file into a PDF. Check out the log file"
+                    f" {latex_file_path.with_suffix('.log')} in the output directory"
+                    " for more information. It is printed below:\n\n"
+                )
+
+                message = message + latex_file_path_log
+                raise RuntimeError(message)
 
             message = (
                 "Failed to render the PDF file. Check out the details in the log file:"
