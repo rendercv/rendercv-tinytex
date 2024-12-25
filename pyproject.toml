@@ -45,6 +45,10 @@ lint = "ruff check"                                                  # hatch run
 check-types = "pyright rendercv_tinytex"                             # hatch run check-types
 test = "pytest tests"                                                # hatch run test
 
+[tool.hatch.envs.test]
+template = "default"
+[[tool.hatch.envs.test.matrix]]
+python = ["3.10", "3.11", "3.12", "3.13"]
 
 # ======================================================================================
 # Virtual Environments Above ===========================================================

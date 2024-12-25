@@ -1,0 +1,33 @@
+name: Test
+
+# GitHub events that triggers the workflow:
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+    branches: ["main"]
+  workflow_call: # to make the workflow triggerable from other workflows (publish-to-pypi.yaml)
+  workflow_dispatch: # to make the workflow triggerable manually
+
+# The workflow:
+jobs:
+  test:
+    name: Test with Py${{ matrix.python-version }} on ${{ matrix.os }}
+
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu, windows, macos]
+        python-version: ["3.10", "3.11", "3.12", "3.13"]
+
+    runs-on: ${{ matrix.os }}-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Install Hatch
+        uses: pypa/hatch@install
+
+      - name: Test
+        run: hatch run test.py${{ matrix.python-version }}:test

@@ -6,10 +6,10 @@ def test_run_pdftex(tmp_path):
 
     latex_file_path.write_text(
         "\\documentclass{article}\n"
-        "\\title{Test}\n"
+        "\\usepackage[T1]{fontenc}\n"
         "\\begin{document}\n"
-        "\\maketitle\n"
-        "Hello, world!\n"
+        "\\section{Hello, world!}\n"
+        "This is a test.\n"
         "\\end{document}\n"
     )
 
